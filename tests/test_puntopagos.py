@@ -1,23 +1,48 @@
 import unittest
 
-import json as simplejson
+import json
 import base64
+import ConfigParser
 
-from puntopagos import PuntoPagoRequest, PuntoPagoResponse, pp_util, PuntoPagoNotification
+from puntopagos import (PuntoPagoRequest, PuntoPagoResponse, PuntoPagoNotification, \
+                        sign, create_signable)
 
-#Set your API KEY
-APIKEY = '0PN5J17HBGZHT7ZZ3X82'
-#Set your API SECRET
-APISECRET = 'uV3F4YluFJax1cKnvbcGwgjvx4QpvB+leU8dUj2o'
+try:
+    config = ConfigParser.ConfigParser()
+    config.readfp(open('config.ini'))
+    APIKEY = config.get('PuntoPagos', 'key')
+    APISECRET = config.get('PuntoPagos', 'secret')
+except ConfigParser.Error, IOError:
+    # Punto Pagos documentation credentials
+    APIKEY = '0PN5J17HBGZHT7ZZ3X82'
+    APISECRET = 'uV3F4YluFJax1cKnvbcGwgjvx4QpvB+leU8dUj2o'
 
-EXAMPLE_AUTHORIZATION = "transaccion/traer\n9XJ08401WN0071839\n9787415132\n1000000.00\nMon, 15 Jun 2009 20:50:30 GMT"
 EXAMPLE_AUTHORIZATION_NOTIFICATION = "transaccion/notificacion\n9XJ08401WN0071839\n9787415132\n1000000.00\nMon, 15 Jun 2009 20:50:30 GMT"
 
 
 class UtilTest(unittest.TestCase):
+    def test_create_signable(self):
+        expected = 'transaccion/crear\n' \
+                   '9787415132\n' \
+                   '1000000.00\n' \
+                   'Mon, 15 Jun 2009 20:50:30 GMT'
+
+        signable = create_signable(action='transaccion/crear',
+                                   data=('9787415132',
+                                         '1000000.00',
+                                         'Mon, 15 Jun 2009 20:50:30 GMT'))
+        self.assertEquals(expected, signable)
+
     def test_sign(self):
-        autorization = pp_util.sign(EXAMPLE_AUTHORIZATION, APISECRET)
-        expected = 'r9XTqzmGmu/UCGkMhkdIwUKMM88='
+        example_secret = 'uV3F4YluFJax1cKnvbcGwgjvx4QpvB+leU8dUj2o'
+
+        expected = 'AVrD3e9idIqAxRSH+15Yqz7qQkc='
+        signable = create_signable(action='transaccion/crear',
+                                   data=('9787415132',
+                                         '1000000.00',
+                                         'Mon, 15 Jun 2009 20:45:30 GMT'))
+
+        autorization = sign(signable, example_secret)
         self.assertEquals(autorization, expected)
 
 
@@ -49,28 +74,38 @@ class RequestTest(unittest.TestCase):
                           PuntoPagoRequest.SANDBOX_URL +
                           'transaccion/procesar/' + response.token)
 
+class ResponseTest(unittest.TestCase):
+    def setUp(self):
+        self.config = {'key': APIKEY, 'secret': APISECRET}
+
     #Step 4 and 5
     def test_json_response(self):
         to_json = {
             "token": "9XJ08401WN0071839",
             "trx_id": 9787415132,
             "medio_pago": "999",
-            "monto": 1000000.0,
+            "monto": 1000000.00,
             "fecha": "2009-06-15T20:50:30",
             "numero_operacion": "7897851487",
             "codigo_autorizacion": "34581"
         }
         date = "Mon, 15 Jun 2009 20:50:30 GMT"
+        notification_string = create_signable(
+                                action='transaccion/notificacion',
+                                data=('transaccion/notificacion',
+                                      '9XJ08401WN0071839',
+                                      '9787415132',
+                                      '1000000.00',
+                                      'Mon, 15 Jun 2009 20:50:30 GMT'))
         autorization = "PP %(apikey)s:%(signed)s" % {
             'apikey': APIKEY,
-            'signed': pp_util.sign(EXAMPLE_AUTHORIZATION_NOTIFICATION, APISECRET)}
+            'signed': sign(notification_string, APISECRET)}
 
-        json = simplejson.dumps(to_json)
+        json_data = json.dumps(to_json)
         notification = PuntoPagoNotification(config=self.config,
-                                             json_data=json,
+                                             json_data=json_data,
                                              date=date,
-                                             autorization=autorization,
-                                             ex=EXAMPLE_AUTHORIZATION_NOTIFICATION)                       
+                                             autorization=autorization)
         self.assertEquals(notification.data, to_json)
         self.assertTrue(notification.authorized)
 

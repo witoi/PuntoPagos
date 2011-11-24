@@ -1,8 +1,9 @@
 import json
 import httplib
 from time import strftime, gmtime
-
-from pp_util import sign
+import hmac
+import hashlib
+import base64
 
 CODES = {
     'ok': '00',
@@ -21,12 +22,33 @@ PUNTOPAGOS_ACTIONS = {
 }
 
 
+def create_signable(action, data):
+    return "\n".join([action] + list(data))
+
+
+def sign(string, key):
+    return base64.b64encode(hmac.HMAC(key, string, hashlib.sha1).digest())
+
+
 class PuntoPagoResponse:
     success = False
     complete = False
+    data = {}
+    trx_id = None
+    ammount = None
+    token = None
 
     def __init__(self, response):
         self.complete = response.status == 200
+        if self.complete:
+            try:
+                self.data = json.loads(response.read())
+            except ValueError:
+                pass
+            else:
+                self.trx_id = self.data['trx_id']
+                self.ammount = self.data['monto']
+                self.token = self.data['token']
 
 
 class PuntoPagoRequest:
@@ -34,7 +56,7 @@ class PuntoPagoRequest:
 
     def __init__(self, config, sandbox=False):
         url = PUNTOPAGOS_URLS['sandbox' if sandbox else 'production']
-        self.conn = httplib.HTTPSConnection(url, port=443)
+        self.conn = httplib.HTTPConnection(url)
         self.conn.set_debuglevel(3 if sandbox else 0)
 
         self.config = config
@@ -51,16 +73,18 @@ class PuntoPagoRequest:
                           body=jsonified)
         response = self.conn.getresponse()
         return PuntoPagoResponse(response)
-    
+
     def create_headers(self, data):
         now = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime())
         data_string = data.copy()
         data_string['fecha'] = now
-        authorization_string = '\n'.join(('transaccion/notificacion',
-                                           '%(trx_id)d',
-                                           '%(monto)0.2f',
-                                           '%(fecha)s')) % data_string
+        authorization_string = create_signable(action='transaccion/notificacion',
+                                               data=('%(trx_id)d',
+                                                     '%(monto)0.2f',
+                                                     '%(fecha)s')) % data_string
+
         signed = sign(authorization_string, self.config['secret'])
+
         params = {'apikey': self.config['key'], 'signed': signed}
         authorization = 'PP %(apikey)s:%(signed)s' % params
 
@@ -82,7 +106,7 @@ class PuntoPagoNotification:
     data = {}
     ''' Response json string as python dict. '''
 
-    def __init__(self, config, json_data, date, autorization, ex):
+    def __init__(self, config, json_data, date, autorization):
         self.data = json.loads(json_data)
         self.date = date
 
@@ -90,11 +114,12 @@ class PuntoPagoNotification:
         data_string = self.data.copy()
         data_string['fecha'] = date
 
-        authorization_string = '\n'.join(('transaccion/notificacion',
-                                           '%(token)s',
-                                           '%(trx_id)d',
-                                           '%(monto)0.2f',
-                                           '%(fecha)s')) % data_string
+        authorization_string = create_signable(action='transaccion/notificacion',
+                                               data=('%(token)s',
+                                                     '%(trx_id)d',
+                                                     '%(monto)0.2f',
+                                                     '%(fecha)s')) % data_string
+
         # sign authorization string
         signed = sign(authorization_string, config['secret'])
 
