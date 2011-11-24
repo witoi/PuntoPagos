@@ -5,7 +5,7 @@ import hmac
 import hashlib
 import base64
 
-CODES = {
+PUNTOPAGOS_CODES = {
     'ok': '00',
     'no_ok': '99',
 }
@@ -38,7 +38,7 @@ class PuntoPagoResponse:
     ammount = None
     token = None
 
-    def __init__(self, response):
+    def __init__(self, response, sandbox=False):
         self.complete = response.status == 200
         if self.complete:
             try:
@@ -49,20 +49,30 @@ class PuntoPagoResponse:
                 self.trx_id = self.data['trx_id']
                 self.ammount = self.data['monto']
                 self.token = self.data['token']
+                params = {
+                    'url': PUNTOPAGOS_URLS['sandbox' if sandbox else 'production'],
+                    'token': self.token
+                }
+                self.redirection_url = "%(url)stransaccion/procesar/%(token)s" % params
+                self.success = self.data['respuesta'] == u'00'
 
 
 class PuntoPagoRequest:
     create_url = None
 
-    def __init__(self, config, sandbox=False):
+    def __init__(self, config, sandbox=False, ssl=True):
         url = PUNTOPAGOS_URLS['sandbox' if sandbox else 'production']
-        self.conn = httplib.HTTPConnection(url)
-        self.conn.set_debuglevel(3 if sandbox else 0)
+        if ssl:
+            self.conn = httplib.HTTPSConnection(url)
+        else:
+            self.conn = httplib.HTTPConnection(url)
+        # self.conn.set_debuglevel(3 if sandbox else 0)
 
         self.config = config
+        self.sandbox = sandbox
 
     def create(self, data):
-        assert isinstance(data, dict)
+        assert isinstance(data, dict), "data must be `dict` type"
 
         jsonified = json.dumps(data)
 
@@ -72,17 +82,16 @@ class PuntoPagoRequest:
                           headers=headers,
                           body=jsonified)
         response = self.conn.getresponse()
-        return PuntoPagoResponse(response)
+        return PuntoPagoResponse(response, sandbox=self.sandbox)
 
     def create_headers(self, data):
         now = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime())
         data_string = data.copy()
         data_string['fecha'] = now
-        authorization_string = create_signable(action='transaccion/notificacion',
-                                               data=('%(trx_id)d',
+        authorization_string = create_signable(action='transaccion/crear',
+                                               data=('%(trx_id)s',
                                                      '%(monto)0.2f',
                                                      '%(fecha)s')) % data_string
-
         signed = sign(authorization_string, self.config['secret'])
 
         params = {'apikey': self.config['key'], 'signed': signed}
@@ -91,6 +100,7 @@ class PuntoPagoRequest:
         return {
             'Fecha': now,
             'Autorizacion': authorization,
+	    'Content-Type': 'application/json'
         }
 
 
@@ -130,8 +140,8 @@ class PuntoPagoNotification:
 
         if self.authorized:
             self.response = json.dumps({
-                'respuesta': CODES['ok'],
+                'respuesta': PUNTOPAGOS_CODES['ok'],
                 'token': self.data['token']
             })
         else:
-            self.response = json.dumps({'respuesta': CODES['no_ok']})
+            self.response = json.dumps({'respuesta': PUNTOPAGOS_CODES['no_ok']})

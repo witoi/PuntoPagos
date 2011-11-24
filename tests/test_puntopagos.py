@@ -3,21 +3,20 @@ import unittest
 import json
 import base64
 import ConfigParser
+import sys
 
 from puntopagos import (PuntoPagoRequest, PuntoPagoResponse, PuntoPagoNotification, \
-                        sign, create_signable)
+                        sign, create_signable, PUNTOPAGOS_URLS)
 
 try:
     config = ConfigParser.ConfigParser()
     config.readfp(open('config.ini'))
     APIKEY = config.get('PuntoPagos', 'key')
     APISECRET = config.get('PuntoPagos', 'secret')
-except ConfigParser.Error, IOError:
-    # Punto Pagos documentation credentials
-    APIKEY = '0PN5J17HBGZHT7ZZ3X82'
-    APISECRET = 'uV3F4YluFJax1cKnvbcGwgjvx4QpvB+leU8dUj2o'
-
-EXAMPLE_AUTHORIZATION_NOTIFICATION = "transaccion/notificacion\n9XJ08401WN0071839\n9787415132\n1000000.00\nMon, 15 Jun 2009 20:50:30 GMT"
+except:
+    sys.stderr.write("Can not run test without 'APIKEY' and 'APISECRET'\n")
+    sys.stderr.write("Put yours in 'config.ini'\n")
+    sys.exit(1)
 
 
 class UtilTest(unittest.TestCase):
@@ -55,28 +54,27 @@ class RequestTest(unittest.TestCase):
         request = PuntoPagoRequest(sandbox=True,
                                    config=self.config)
         response = request.create({
-            'trx_id': 1,
-            'medio_pago': '999',
+            'trx_id': '1',
             'monto': 100.0
         })
         self.assertTrue(isinstance(response, PuntoPagoResponse))
         self.assertTrue(response.complete)
         self.assertTrue(response.success)
-        self.assertEquals(response.trx_id, 1)
-        self.assertEquals(response.ammount, '100.00')
+        self.assertEquals(response.trx_id, '1')
+        self.assertEquals(response.ammount, 100.0)
         self.assertTrue(response.token is not None)
         params = {
-            'url': PuntoPagoRequest.SANDBOX_URL,
+            'url': PUNTOPAGOS_URLS['sandbox'],
             'token': response.token
         }
         expected_url = "%(url)stransaccion/procesar/%(token)s" % params
         self.assertEquals(response.redirection_url,
-                          PuntoPagoRequest.SANDBOX_URL +
+                          PUNTOPAGOS_URLS['sandbox'] +
                           'transaccion/procesar/' + response.token)
 
 class ResponseTest(unittest.TestCase):
     def setUp(self):
-        self.config = {'key': APIKEY, 'secret': APISECRET}
+        self.config = {'key': '0PN5J17HBGZHT7ZZ3X82', 'secret': 'uV3F4YluFJax1cKnvbcGwgjvx4QpvB+leU8dUj2o'}
 
     #Step 4 and 5
     def test_json_response(self):
@@ -92,14 +90,13 @@ class ResponseTest(unittest.TestCase):
         date = "Mon, 15 Jun 2009 20:50:30 GMT"
         notification_string = create_signable(
                                 action='transaccion/notificacion',
-                                data=('transaccion/notificacion',
-                                      '9XJ08401WN0071839',
+                                data=('9XJ08401WN0071839',
                                       '9787415132',
                                       '1000000.00',
                                       'Mon, 15 Jun 2009 20:50:30 GMT'))
         autorization = "PP %(apikey)s:%(signed)s" % {
-            'apikey': APIKEY,
-            'signed': sign(notification_string, APISECRET)}
+            'apikey': self.config['key'],
+            'signed': sign(notification_string, self.config['secret'])}
 
         json_data = json.dumps(to_json)
         notification = PuntoPagoNotification(config=self.config,
@@ -110,5 +107,5 @@ class ResponseTest(unittest.TestCase):
         self.assertTrue(notification.authorized)
 
         unjsonified_expected_response = {"respuesta": "00", "token": "9XJ08401WN0071839"}
-        unjsonified_response = simplejson.loads(notification.response)
+        unjsonified_response = json.loads(notification.response)
         self.assertEquals(unjsonified_expected_response, unjsonified_response)
