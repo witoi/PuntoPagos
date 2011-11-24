@@ -100,7 +100,7 @@ class PuntoPagoRequest:
         return {
             'Fecha': now,
             'Autorizacion': authorization,
-	    'Content-Type': 'application/json'
+            'Content-Type': 'application/json'
         }
 
 
