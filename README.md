@@ -19,3 +19,4 @@
 
 ## Authors
 * [Pedro Burón](http://pedroburon.info)
+* [Alejandro Varas](http://alej0.tk)
