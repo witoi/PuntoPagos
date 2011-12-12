@@ -60,7 +60,6 @@ class PuntoPagoResponse:
         if self.complete:
             try:
                 content = response.read()
-                print content
                 self.data = json.loads(content)
             except ValueError:
                 pass
@@ -87,7 +86,7 @@ class PuntoPagoRequest:
             self.conn = httplib.HTTPSConnection(url)
         else:
             self.conn = httplib.HTTPConnection(url)
-        self.conn.set_debuglevel(3 if sandbox else 0)
+        #self.conn.set_debuglevel(3 if sandbox else 0)
 
         self.config = config
         self.sandbox = sandbox
