@@ -39,6 +39,7 @@ def get_image(mp):
     assert mp in PUNTOPAGOS_PAYMENT_METHODS
     return "http://www.puntopagos.com/content/mp%d.gif" % mp
 
+
 def create_signable(action, data):
     return "\n".join([action] + list(data))
 
@@ -92,6 +93,11 @@ class PuntoPagoRequest:
         self.sandbox = sandbox
 
     def create(self, data):
+        '''
+        Create a request (and a transaction) to puntopagos.com.
+
+        :param data: dict with data needed for the transaction.
+        '''
         assert isinstance(data, dict), "data must be `dict` type"
 
         jsonified = json.dumps(data)

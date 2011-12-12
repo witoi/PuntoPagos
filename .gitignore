@@ -3,3 +3,6 @@ PuntoPagos.egg-info/*
 config.ini
 *.*~
 .idea/
+build/
+dist/
+doc/build/
