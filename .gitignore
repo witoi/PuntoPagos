@@ -2,3 +2,4 @@ PuntoPagos.egg-info/*
 *.pyc
 config.ini
 *.*~
+.idea/
