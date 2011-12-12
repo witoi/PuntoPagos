@@ -7,6 +7,7 @@ import sys
 
 from puntopagos import (PuntoPagoRequest, PuntoPagoResponse, PuntoPagoNotification, \
                         sign, create_signable, PUNTOPAGOS_URLS)
+import puntopagos
 
 try:
     config = ConfigParser.ConfigParser()
@@ -55,7 +56,8 @@ class RequestTest(unittest.TestCase):
                                    config=self.config)
         response = request.create({
             'trx_id': '1',
-            'monto': 100.0
+            'medio_pago': "3",
+            'monto': 100.0,
         })
         self.assertTrue(isinstance(response, PuntoPagoResponse))
         self.assertTrue(response.complete)
@@ -69,8 +71,8 @@ class RequestTest(unittest.TestCase):
         }
         expected_url = "%(url)stransaccion/procesar/%(token)s" % params
         self.assertEquals(response.redirection_url,
-                          PUNTOPAGOS_URLS['sandbox'] +
-                          'transaccion/procesar/' + response.token)
+                          'http://' + PUNTOPAGOS_URLS['sandbox'] +
+                          '/transaccion/procesar/' + response.token)
 
 class ResponseTest(unittest.TestCase):
     def setUp(self):

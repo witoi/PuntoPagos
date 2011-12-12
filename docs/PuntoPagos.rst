@@ -31,10 +31,29 @@ Redirecciones al usuario
   =========================================== ======
 
 
+Medios de pago:
+---------------
+
+    == ================================ ========
+    ID Medio de pago                    Imagen
+    == ================================ ========
+    1  Botón de Pago Banco Santander    mp1.gif
+    2  Tarjeta Presto                   mp2.gif
+    3  Webpay Transbank                 mp3.gif
+    4  Botón de Pago Banco de Chile     mp4.gif
+    5  Botón de Pago BCI                mp5.gif
+    6  Botón de Pago TBanc              mp6.gif
+    7  Botón de Pago Banco Estado       mp7.gif
+    X  Tarjeta Ripley                   mp10.gif
+    15 Paypal                           mp11.gif
+    == ================================ ========
+
+
 Simbología:
 ...........
 
  ``*``: opcional
+
 
 Tipos de las variables del contenido(en Python)(deducidos de los ejemplos):
 ...........................................................................

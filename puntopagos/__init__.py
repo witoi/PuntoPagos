@@ -1,3 +1,5 @@
+#encoding=UTF-8
+
 import json
 import httplib
 from time import strftime, gmtime
@@ -21,6 +23,21 @@ PUNTOPAGOS_ACTIONS = {
     'status': '/transaccion/%(token)s',
 }
 
+PUNTOPAGOS_PAYMENT_METHODS = {
+    1:  u"Botón de Pago Banco Santander",
+    2:  u"Tarjeta Presto",
+    3:  u"Webpay Transbank",
+    4:  u"Botón de Pago Banco de Chile",
+    5:  u"Botón de Pago BCI",
+    6:  u"Botón de Pago TBanc",
+    7:  u"Botón de Pago Banco Estado",
+    #10:  "Tarjeta Ripley",
+    15: u"Paypal",
+}
+
+def get_image(mp):
+    assert mp in PUNTOPAGOS_PAYMENT_METHODS
+    return "http://www.puntopagos.com/content/mp%d.gif" % mp
 
 def create_signable(action, data):
     return "\n".join([action] + list(data))
@@ -42,18 +59,22 @@ class PuntoPagoResponse:
         self.complete = response.status == 200
         if self.complete:
             try:
-                self.data = json.loads(response.read())
+                content = response.read()
+                print content
+                self.data = json.loads(content)
             except ValueError:
                 pass
             else:
                 self.trx_id = self.data['trx_id']
                 self.ammount = self.data['monto']
                 self.token = self.data['token']
+                self.method = self.data['medio_pago'] if 'medio_pago' in self.data else None
+                action = PUNTOPAGOS_ACTIONS['process'] % {'token': self.token}
                 params = {
                     'url': PUNTOPAGOS_URLS['sandbox' if sandbox else 'production'],
-                    'token': self.token
+                    'action': action
                 }
-                self.redirection_url = "%(url)stransaccion/procesar/%(token)s" % params
+                self.redirection_url = "http://%(url)s%(action)s" % params
                 self.success = self.data['respuesta'] == u'00'
 
 
@@ -66,7 +87,7 @@ class PuntoPagoRequest:
             self.conn = httplib.HTTPSConnection(url)
         else:
             self.conn = httplib.HTTPConnection(url)
-        # self.conn.set_debuglevel(3 if sandbox else 0)
+        self.conn.set_debuglevel(3 if sandbox else 0)
 
         self.config = config
         self.sandbox = sandbox
