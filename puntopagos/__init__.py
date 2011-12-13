@@ -13,8 +13,8 @@ PUNTOPAGOS_CODES = {
 }
 
 PUNTOPAGOS_URLS = {
-    'sandbox': 'sandbox.puntopagos.com',
-    'production': 'www.puntopagos.com',
+    True: 'sandbox.puntopagos.com',
+    False: 'www.puntopagos.com',
 }
 
 PUNTOPAGOS_ACTIONS = {
@@ -34,6 +34,13 @@ PUNTOPAGOS_PAYMENT_METHODS = {
     #10:  "Tarjeta Ripley",
     15: u"Paypal",
 }
+
+def get_action_url(action, sandbox, token=None):
+    return 'http://' + \
+           PUNTOPAGOS_URLS[sandbox] + \
+           PUNTOPAGOS_ACTIONS[action] % {'token': token if token else ''}
+
+
 
 def get_image(mp):
     return "http://www.puntopagos.com/content/mp%d.gif" % mp
@@ -68,12 +75,7 @@ class PuntoPagoResponse:
                 self.ammount = self.data['monto']
                 self.token = self.data['token']
                 self.method = self.data['medio_pago'] if 'medio_pago' in self.data else None
-                action = PUNTOPAGOS_ACTIONS['process'] % {'token': self.token}
-                params = {
-                    'url': PUNTOPAGOS_URLS['sandbox' if sandbox else 'production'],
-                    'action': action
-                }
-                self.redirection_url = "http://%(url)s%(action)s" % params
+                self.redirection_url = get_action_url('process', sandbox, self.token)
                 self.success = self.data['respuesta'] == u'00'
 
 
@@ -81,7 +83,7 @@ class PuntoPagoRequest:
     create_url = None
 
     def __init__(self, config, sandbox=False, ssl=True):
-        url = PUNTOPAGOS_URLS['sandbox' if sandbox else 'production']
+        url = PUNTOPAGOS_URLS[sandbox]
         if ssl:
             self.conn = httplib.HTTPSConnection(url)
         else:

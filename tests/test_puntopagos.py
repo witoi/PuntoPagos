@@ -52,7 +52,8 @@ class RequestTest(unittest.TestCase):
 
     #Step 1, 2 and 3
     def test_create_transaction(self):
-        request = PuntoPagoRequest(sandbox=True,
+        sandbox = True
+        request = PuntoPagoRequest(sandbox=sandbox,
                                    config=self.config)
         response = request.create({
             'trx_id': '1',
@@ -65,14 +66,8 @@ class RequestTest(unittest.TestCase):
         self.assertEquals(response.trx_id, '1')
         self.assertEquals(response.ammount, 100.0)
         self.assertTrue(response.token is not None)
-        params = {
-            'url': PUNTOPAGOS_URLS['sandbox'],
-            'token': response.token
-        }
-        expected_url = "%(url)stransaccion/procesar/%(token)s" % params
-        self.assertEquals(response.redirection_url,
-                          'http://' + PUNTOPAGOS_URLS['sandbox'] +
-                          '/transaccion/procesar/' + response.token)
+        expected_url = puntopagos.get_action_url('process', sandbox, response.token)
+        self.assertEquals(response.redirection_url, expected_url)
 
 class ResponseTest(unittest.TestCase):
     def setUp(self):
