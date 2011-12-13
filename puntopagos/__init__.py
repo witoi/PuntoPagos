@@ -36,7 +36,6 @@ PUNTOPAGOS_PAYMENT_METHODS = {
 }
 
 def get_image(mp):
-    assert mp in PUNTOPAGOS_PAYMENT_METHODS
     return "http://www.puntopagos.com/content/mp%d.gif" % mp
 
 
