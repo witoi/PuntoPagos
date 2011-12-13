@@ -1,36 +1,36 @@
 import unittest
-
 import json
-import base64
 import ConfigParser
 import sys
+import os
 
-from puntopagos import (PuntoPagoRequest, PuntoPagoResponse, PuntoPagoNotification, \
+from puntopagos import (PuntoPagoRequest, PuntoPagoResponse, PuntoPagoNotification,\
                         sign, create_signable, PUNTOPAGOS_URLS)
-import puntopagos
 
+
+config_filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini')
 try:
     config = ConfigParser.ConfigParser()
-    config.readfp(open('config.ini'))
+    config.readfp(open(config_filename))
     APIKEY = config.get('PuntoPagos', 'key')
     APISECRET = config.get('PuntoPagos', 'secret')
 except:
     sys.stderr.write("Can not run test without 'APIKEY' and 'APISECRET'\n")
-    sys.stderr.write("Put yours in 'config.ini'\n")
+    sys.stderr.write("Put yours in '%s'\n" % config_filename)
     sys.exit(1)
 
 
 class UtilTest(unittest.TestCase):
     def test_create_signable(self):
-        expected = 'transaccion/crear\n' \
-                   '9787415132\n' \
-                   '1000000.00\n' \
+        expected = 'transaccion/crear\n'\
+                   '9787415132\n'\
+                   '1000000.00\n'\
                    'Mon, 15 Jun 2009 20:50:30 GMT'
 
         signable = create_signable(action='transaccion/crear',
-                                   data=('9787415132',
-                                         '1000000.00',
-                                         'Mon, 15 Jun 2009 20:50:30 GMT'))
+            data=('9787415132',
+                  '1000000.00',
+                  'Mon, 15 Jun 2009 20:50:30 GMT'))
         self.assertEquals(expected, signable)
 
     def test_sign(self):
@@ -38,9 +38,9 @@ class UtilTest(unittest.TestCase):
 
         expected = 'AVrD3e9idIqAxRSH+15Yqz7qQkc='
         signable = create_signable(action='transaccion/crear',
-                                   data=('9787415132',
-                                         '1000000.00',
-                                         'Mon, 15 Jun 2009 20:45:30 GMT'))
+            data=('9787415132',
+                  '1000000.00',
+                  'Mon, 15 Jun 2009 20:45:30 GMT'))
 
         autorization = sign(signable, example_secret)
         self.assertEquals(autorization, expected)
@@ -51,14 +51,14 @@ class RequestTest(unittest.TestCase):
         self.config = {'key': APIKEY, 'secret': APISECRET}
 
     #Step 1, 2 and 3
-    def test_create_transaction(self):
+    def test_create_transaction_and_use_it_for_test_status(self):
         request = PuntoPagoRequest(sandbox=True,
-                                   config=self.config)
+            config=self.config)
         response = request.create({
             'trx_id': '1',
             'medio_pago': "3",
             'monto': 100.0,
-        })
+            })
         self.assertTrue(isinstance(response, PuntoPagoResponse))
         self.assertTrue(response.complete)
         self.assertTrue(response.success)
@@ -71,8 +71,15 @@ class RequestTest(unittest.TestCase):
         }
         expected_url = "%(url)stransaccion/procesar/%(token)s" % params
         self.assertEquals(response.redirection_url,
-                          'http://' + PUNTOPAGOS_URLS['sandbox'] +
-                          '/transaccion/procesar/' + response.token)
+            'http://' + PUNTOPAGOS_URLS['sandbox'] +
+            '/transaccion/procesar/' + response.token)
+
+        # Begin status test
+        notification = request.status(token=response.token, monto=100.0, trx_id='1', )
+        self.assertTrue(isinstance(notification, PuntoPagoNotification))
+        self.assertTrue(notification.authorized)
+        self.assertTrue(notification.response['token'], response.token)
+
 
 class ResponseTest(unittest.TestCase):
     def setUp(self):
@@ -91,20 +98,20 @@ class ResponseTest(unittest.TestCase):
         }
         date = "Mon, 15 Jun 2009 20:50:30 GMT"
         notification_string = create_signable(
-                                action='transaccion/notificacion',
-                                data=('9XJ08401WN0071839',
-                                      '9787415132',
-                                      '1000000.00',
-                                      'Mon, 15 Jun 2009 20:50:30 GMT'))
+            action='transaccion/notificacion',
+            data=('9XJ08401WN0071839',
+                  '9787415132',
+                  '1000000.00',
+                  'Mon, 15 Jun 2009 20:50:30 GMT'))
         autorization = "PP %(apikey)s:%(signed)s" % {
             'apikey': self.config['key'],
             'signed': sign(notification_string, self.config['secret'])}
 
         json_data = json.dumps(to_json)
         notification = PuntoPagoNotification(config=self.config,
-                                             json_data=json_data,
-                                             date=date,
-                                             autorization=autorization)
+            json_data=json_data,
+            date=date,
+            autorization=autorization)
         self.assertEquals(notification.data, to_json)
         self.assertTrue(notification.authorized)
 
