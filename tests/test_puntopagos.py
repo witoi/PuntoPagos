@@ -54,11 +54,6 @@ class RequestTest(unittest.TestCase):
         self.assertEquals(response.trx_id, creation_data['trx_id'])
         self.assertEquals(response.amount, 100.0)
         self.assertTrue(response.token is not None)
-        params = {
-            'url': PUNTOPAGOS_URLS['sandbox'],
-            'token': response.token
-        }
-        expected_url = "%(url)stransaccion/procesar/%(token)s" % params
         self.assertEquals(response.redirection_url,
             'http://' + PUNTOPAGOS_URLS['sandbox'] +
             '/transaccion/procesar/' + response.token)

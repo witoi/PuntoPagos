@@ -48,6 +48,7 @@ PUNTOPAGOS_PAYMENT_METHODS = {
     #999: u"Banco de Prueba"
     }
 
+
 def get_image(medio_pago):
     assert medio_pago in PUNTOPAGOS_PAYMENT_METHODS
     return "http://www.puntopagos.com/content/mp%d.gif" % mp
@@ -57,7 +58,8 @@ def sign(string, key):
     return base64.b64encode(hmac.HMAC(key, string, hashlib.sha1).digest())
 
 
-class PuntoPagoJsonResponseError(Exception): pass
+class PuntoPagoJsonResponseError(Exception):
+    pass
 
 
 class PuntoPagoResponse():
@@ -75,13 +77,14 @@ class PuntoPagoResponse():
                 raise PuntoPagoJsonResponseError
             else:
                 self._process_data()
-    
+
     def _process_data(self):
-        ''' 
-        Override this method for processing `dict` self.data 
+        '''
+        Override this method for processing `dict` self.data
         previously set on constructor. By default does nothing.
         '''
         pass
+
 
 class PuntoPagoCreateResponse(PuntoPagoResponse):
     success = False
@@ -105,7 +108,6 @@ class PuntoPagoCreateResponse(PuntoPagoResponse):
 
 class PuntoPagoStatusResponse(PuntoPagoResponse):
     pass
-
 
 
 class PuntoPagoRequest:
@@ -141,11 +143,10 @@ class PuntoPagoRequest:
         headers = self.create_headers(authorization_string, now)
         status_action = PUNTOPAGOS_ACTIONS['status'] % {'token': token}
 
-        self.connection.request(method='GET', url=status_action,headers=headers)
+        self.connection.request(method='GET', url=status_action, headers=headers)
         response = self.connection.getresponse()
 
         return PuntoPagoStatusResponse(response, sandbox=self.sandbox)
-
 
     def create(self, trx_id, medio_pago, monto, detalle=''):
         '''
@@ -169,7 +170,7 @@ class PuntoPagoRequest:
         headers = self.create_headers(authorization_string, now)
         body = json.dumps(data)
 
-        self.connection.request(method='POST', url=PUNTOPAGOS_ACTIONS['create'], 
+        self.connection.request(method='POST', url=PUNTOPAGOS_ACTIONS['create'],
                                 headers=headers, body=body)
         response = self.connection.getresponse()
 
@@ -178,7 +179,7 @@ class PuntoPagoRequest:
     def create_headers(self, authorization_string, now):
         '''
         Create standard headers for a puntopagos.com request
-        
+
         :param authorization_string: Signable authorization string.
         :param now: struct_time usually returned by `gmtime()`
         '''
