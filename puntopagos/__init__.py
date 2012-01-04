@@ -23,6 +23,18 @@ PUNTOPAGOS_ACTIONS = {
     'status': '/transaccion/%(token)s',
     }
 
+PUNTOPAGOS_SIGNABLE_HEADERS = {
+    'create': 'transaccion/crear\n' \
+              '%(trx_id)s\n' \
+              '%(monto)0.2f\n' \
+              '%(fecha)s',
+    'status': 'transaccion/traer\n' \
+              '%(token)s\n' \
+              '%(trx_id)s\n' \
+              '%(monto)0.2f\n' \
+              '%(fecha)s',
+}
+
 PUNTOPAGOS_PAYMENT_METHODS = {
     1: u"Botón de Pago Banco Santander",
     2: u"Tarjeta Presto",
@@ -33,66 +45,90 @@ PUNTOPAGOS_PAYMENT_METHODS = {
     7: u"Botón de Pago Banco Estado",
     #10:  "Tarjeta Ripley",
     15: u"Paypal",
+    #999: u"Banco de Prueba"
     }
 
-def get_image(mp):
-    assert mp in PUNTOPAGOS_PAYMENT_METHODS
+def get_image(medio_pago):
+    assert medio_pago in PUNTOPAGOS_PAYMENT_METHODS
     return "http://www.puntopagos.com/content/mp%d.gif" % mp
-
-
-def create_signable(action, data):
-    return "\n".join([action] + list(data))
 
 
 def sign(string, key):
     return base64.b64encode(hmac.HMAC(key, string, hashlib.sha1).digest())
 
 
-class PuntoPagoResponse:
-    success = False
+class PuntoPagoJsonResponseError(Exception): pass
+
+
+class PuntoPagoResponse():
     complete = False
     data = {}
-    trx_id = None
-    ammount = None
-    token = None
 
     def __init__(self, response, sandbox=False):
-        self.complete = response.status == 200
+        self.sandbox = sandbox
+        self.complete = response.status is httplib.OK
         if self.complete:
             try:
                 content = response.read()
                 self.data = json.loads(content)
             except ValueError:
-                pass
+                raise PuntoPagoJsonResponseError
             else:
-                self.trx_id = self.data['trx_id']
-                self.ammount = self.data['monto']
-                self.token = self.data['token']
-                self.method = self.data['medio_pago'] if 'medio_pago' in self.data else None
-                action = PUNTOPAGOS_ACTIONS['process'] % {'token': self.token}
-                params = {
-                    'url': PUNTOPAGOS_URLS['sandbox' if sandbox else 'production'],
-                    'action': action
-                }
-                self.redirection_url = "http://%(url)s%(action)s" % params
-                self.success = self.data['respuesta'] == u'00'
+                self._process_data()
+    
+    def _process_data(self):
+        ''' 
+        Override this method for processing `dict` self.data 
+        previously set on constructor. By default does nothing.
+        '''
+        pass
+
+class PuntoPagoCreateResponse(PuntoPagoResponse):
+    success = False
+    trx_id = None
+    amount = None
+    token = None
+
+    def _process_data(self):
+        self.trx_id = self.data['trx_id']
+        self.amount = self.data['monto']
+        self.token = self.data['token']
+        self.method = self.data['medio_pago'] if 'medio_pago' in self.data else None
+        action = PUNTOPAGOS_ACTIONS['process'] % {'token': self.token}
+        params = {
+            'url': PUNTOPAGOS_URLS['sandbox' if self.sandbox else 'production'],
+            'action': action
+        }
+        self.redirection_url = "http://%(url)s%(action)s" % params
+        self.success = self.data['respuesta'] == u'00'
+
+
+class PuntoPagoStatusResponse(PuntoPagoResponse):
+    pass
+
 
 
 class PuntoPagoRequest:
-    create_url = None
-
     def __init__(self, config, sandbox=False, ssl=True):
         url = PUNTOPAGOS_URLS['sandbox' if sandbox else 'production']
         if ssl:
-            self.conn = httplib.HTTPSConnection(url)
+            self.connection = httplib.HTTPSConnection(url)
         else:
-            self.conn = httplib.HTTPConnection(url)
-            #self.conn.set_debuglevel(3 if sandbox else 0)
+            self.connection = httplib.HTTPConnection(url)
+        #self.connection.set_debuglevel(3 if sandbox else 0)
 
         self.config = config
         self.sandbox = sandbox
 
     def status(self, token, trx_id, monto):
+        '''
+        Create a request for verify a transaction status
+
+        :param token:       Unique token, asigned by puntopagos to transaction.
+        :param trx_id:      Client unique transaction id (varchar(50)).
+        :param monto:       Transaction total amount.
+        '''
+
         now = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime())
         data = {
             'token': token,
@@ -100,52 +136,52 @@ class PuntoPagoRequest:
             'monto': monto,
             'fecha': now
         }
-        authorization_string = create_signable(action='transaccion/traer',
-            data=('%(token)s',
-                  '%(trx_id)s',
-                  '%(monto)0.2f',
-                  '%(fecha)s')) % data
 
+        authorization_string = PUNTOPAGOS_SIGNABLE_HEADERS['status'] % data
         headers = self.create_headers(authorization_string, now)
-        self.conn.request('GET',
-            PUNTOPAGOS_ACTIONS['create'],
-            headers=headers)
-        response = self.conn.getresponse()
-        data = response.read()
-        print data
-        date = response.getheader('Fecha')
-        authorization = response.getheader('Autorizacion')
-        json_data = json.loads(data)
-        return PuntoPagoNotification(self.config, json_data, date, authorization, action='transaccion/traer')
+        status_action = PUNTOPAGOS_ACTIONS['status'] % {'token': token}
+
+        self.connection.request(method='GET', url=status_action,headers=headers)
+        response = self.connection.getresponse()
+
+        return PuntoPagoStatusResponse(response, sandbox=self.sandbox)
 
 
-    def create(self, data):
+    def create(self, trx_id, medio_pago, monto, detalle=''):
         '''
         Create a request (and a transaction) to puntopagos.com.
 
-        :param data: dict with data needed for the transaction.
+        :param trx_id:      Client unique transaction id (varchar(50)).
+        :param medio_pago:  Payment method id, valid ids in PUNTOPAGOS_PAYMENT_METHODS.
+        :param monto:       Transaction total amount.
+        :param detalle:     Transaction detail (optional).
         '''
-        assert isinstance(data, dict), "data must be `dict` type"
-
-        jsonified = json.dumps(data)
-
         now = strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime())
-        data_string = data.copy()
-        data_string['fecha'] = now
-        authorization_string = create_signable(action='transaccion/crear',
-            data=('%(trx_id)s',
-                  '%(monto)0.2f',
-                  '%(fecha)s')) % data_string
+        data = {
+            'trx_id': trx_id,
+            'medio_pago': medio_pago,
+            'monto': monto,
+            'detalle': detalle,
+            'fecha': now
+        }
 
+        authorization_string = PUNTOPAGOS_SIGNABLE_HEADERS['create'] % data
         headers = self.create_headers(authorization_string, now)
-        self.conn.request('POST',
-            PUNTOPAGOS_ACTIONS['create'],
-            headers=headers,
-            body=jsonified)
-        response = self.conn.getresponse()
-        return PuntoPagoResponse(response, sandbox=self.sandbox)
+        body = json.dumps(data)
+
+        self.connection.request(method='POST', url=PUNTOPAGOS_ACTIONS['create'], 
+                                headers=headers, body=body)
+        response = self.connection.getresponse()
+
+        return PuntoPagoCreateResponse(response, sandbox=self.sandbox)
 
     def create_headers(self, authorization_string, now):
+        '''
+        Create standard headers for a puntopagos.com request
+        
+        :param authorization_string: Signable authorization string.
+        :param now: struct_time usually returned by `gmtime()`
+        '''
         signed = sign(authorization_string, self.config['secret'])
         params = {'apikey': self.config['key'], 'signed': signed}
         authorization = 'PP %(apikey)s:%(signed)s' % params
@@ -154,46 +190,3 @@ class PuntoPagoRequest:
             'Autorizacion': authorization,
             'Content-Type': 'application/json'
         }
-
-
-class PuntoPagoNotification:
-    '''
-    Verify the authenticity of a puntopago's response
-    and create an abstraction.
-    '''
-
-    authorized = False
-    ''' False when response can't be verified. '''
-
-    data = {}
-    ''' Response json string as python dict. '''
-
-    def __init__(self, config, json_data, date, autorization, action='transaccion/notificacion'):
-        self.data = json.loads(json_data)
-        self.date = date
-
-        # set authorization_string RFC1123 date
-        data_string = self.data.copy()
-        data_string['fecha'] = date
-
-        authorization_string = create_signable(action=action,
-            data=('%(token)s',
-                  '%(trx_id)d',
-                  '%(monto)0.2f',
-                  '%(fecha)s')) % data_string
-
-        # sign authorization string
-        signed = sign(authorization_string, config['secret'])
-
-        params = {'apikey': config['key'], 'signed': signed}
-        authorization_expected = 'PP %(apikey)s:%(signed)s' % params
-
-        self.authorized = authorization_expected == autorization
-
-        if self.authorized:
-            self.response = json.dumps({
-                'respuesta': PUNTOPAGOS_CODES['ok'],
-                'token': self.data['token']
-            })
-        else:
-            self.response = json.dumps({'respuesta': PUNTOPAGOS_CODES['no_ok']})
