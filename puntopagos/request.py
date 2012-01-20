@@ -8,7 +8,7 @@ from puntopagos.response import PuntopagosResponse
 from puntopagos import util
 
 
-class PuntopagoRequest:
+class PuntopagosRequest:
     key = None
     secret = None
     response_class = PuntopagosResponse

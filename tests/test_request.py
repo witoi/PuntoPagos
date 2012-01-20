@@ -5,7 +5,7 @@ from httplib import HTTPSConnection
 from time import struct_time, mktime, gmtime, strftime
 from decimal import Decimal, ROUND_UP
 
-from puntopagos.request import PuntopagoRequest
+from puntopagos.request import PuntopagosRequest
 from puntopagos.response import PuntopagosResponse
 from puntopagos import util
 
@@ -16,9 +16,9 @@ class RequestTest(TestCase):
         self.secret = 'SECRET'
 
     def test_create_request(self):
-        request = PuntopagoRequest(key=self.key, secret=self.secret)
+        request = PuntopagosRequest(key=self.key, secret=self.secret)
 
-        self.assertTrue(isinstance(request, PuntopagoRequest))
+        self.assertTrue(isinstance(request, PuntopagosRequest))
         self.assertEqual(request.key, self.key)
         self.assertEqual(request.secret, self.secret)
         self.assertTrue(request.connection is not None)
@@ -27,19 +27,19 @@ class RequestTest(TestCase):
         self.assertTrue(mktime(gmtime()) - mktime(request.time) < 60) # max 2 minutes for acceptance of puntopagos headers
     
     def test_create_request_default_connection(self):
-        request = PuntopagoRequest(key=self.key, secret=self.secret)
+        request = PuntopagosRequest(key=self.key, secret=self.secret)
 
         self.assertTrue(isinstance(request.connection, HTTPSConnection))
     
     def test_create_request_default_response_class(self):
-        request = PuntopagoRequest(key=self.key, secret=self.secret)
+        request = PuntopagosRequest(key=self.key, secret=self.secret)
 
         self.assertEqual(request.response_class, PuntopagosResponse)
     
     def test_create_request_custom_connection(self):
         connection = Mock()
 
-        request = PuntopagoRequest(key=self.key, secret=self.secret, connection=connection)
+        request = PuntopagosRequest(key=self.key, secret=self.secret, connection=connection)
 
         self.assertEqual(connection, request.connection)
 
@@ -50,7 +50,7 @@ class RequestCreateTest(TestCase):
         self.connection.getresponse.return_value = 'response'
         self.key = 'KEY'
         self.secret = 'SECRET'
-        self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
+        self.request = PuntopagosRequest(key=self.key, secret=self.secret, connection=self.connection)
         self.response_class = Mock()
 
     def test_call_create(self):
@@ -83,7 +83,7 @@ class RequestStatusTest(TestCase):
         self.connection.getresponse.return_value = 'response'
         self.key = 'KEY'
         self.secret = 'SECRET'
-        self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
+        self.request = PuntopagosRequest(key=self.key, secret=self.secret, connection=self.connection)
         self.response_class = Mock()
     
     def test_get_status_aprobado(self):
