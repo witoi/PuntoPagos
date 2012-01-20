@@ -38,7 +38,8 @@ class PuntopagoRequest:
                            'detalle': detalle, 
                            'fecha': fecha})
 
-        response = self.connection.request(method='POST', url='/transaccion/crear', headers=headers, body=body)
+        self.connection.request(method='POST', url='/transaccion/crear', headers=headers, body=body)
+        response = self.connection.getresponse()
         return self.response_class(response)
 
     def status(self, token, trx_id, monto):
@@ -47,6 +48,6 @@ class PuntopagoRequest:
         headers = util.create_headers(authorization_string=authorization_string, 
                                       time=self.time, 
                                       key=self.key, secret=self.secret)
-        response = self.connection.request(url='/transaccion/traer', headers=headers, method='GET')
-
+        self.connection.request(url='/transaccion/%(token)s' % {'token': token}, headers=headers, method='GET')
+        response = self.connection.getresponse()
         return self.response_class(response)

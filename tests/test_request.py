@@ -1,9 +1,9 @@
+import json
 from unittest import TestCase
 from mock import Mock
 from httplib import HTTPSConnection
 from time import struct_time, mktime, gmtime, strftime
 from decimal import Decimal, ROUND_UP
-import json
 
 from puntopagos.request import PuntopagoRequest
 from puntopagos.response import PuntopagosResponse
@@ -14,9 +14,6 @@ class RequestTest(TestCase):
     def setUp(self):
         self.key = 'KEY'
         self.secret = 'SECRET'
-
-    def tearDown(self):
-        pass
 
     def test_create_request(self):
         request = PuntopagoRequest(key=self.key, secret=self.secret)
@@ -50,7 +47,7 @@ class RequestTest(TestCase):
 class RequestCreateTest(TestCase):
     def setUp(self):
         self.connection = Mock()
-        self.connection.request.return_value = 'response'
+        self.connection.getresponse.return_value = 'response'
         self.key = 'KEY'
         self.secret = 'SECRET'
         self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
@@ -76,13 +73,14 @@ class RequestCreateTest(TestCase):
         response = self.request.create(trx_id=trx_id, medio_pago=medio_pago, monto=monto, detalle=detalle)
 
         self.connection.request.assert_called_once_with(method='POST', url='/transaccion/crear', headers=headers, body=body)
-        self.response_class.assert_called_once_with(self.connection.request())
+        self.connection.getresponse.assert_called_once_with()
+        self.response_class.assert_called_once_with(self.connection.getresponse())
         
 
 class RequestStatusTest(TestCase):
     def setUp(self):
         self.connection = Mock()
-        self.connection.request.return_value = 'response'
+        self.connection.getresponse.return_value = 'response'
         self.key = 'KEY'
         self.secret = 'SECRET'
         self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
@@ -92,10 +90,6 @@ class RequestStatusTest(TestCase):
         token = '9XJ08401WN0071839'
         trx_id = '9787415132'
         monto = Decimal('10.001')
-        expected = '{"respuesta":"00","token":"9XJ08401WN0071839","trx_id":"9787415132","medio_pago":"999","' \
-                   'monto":10.01,"fecha":"2009-06-15T20:49:00","numero_operacion":"7897851487",' \
-                   '"codigo_autorizacion":"34581"}'
-
         authorization_string = util.authorization_string(action='status', trx_id=trx_id, monto=monto, fecha=self.request.time, token=token)
         headers = util.create_headers(authorization_string=authorization_string, 
                                       time=self.request.time, 
@@ -104,7 +98,8 @@ class RequestStatusTest(TestCase):
 
         response = self.request.status(token=token, trx_id=trx_id, monto=monto)
         
-        self.connection.request.assert_called_once_with(method='GET', url='/transaccion/traer', headers=headers)
-        self.response_class.assert_called_once_with(self.connection.request())
+        self.connection.request.assert_called_once_with(method='GET', url='/transaccion/9XJ08401WN0071839', headers=headers)
+        self.connection.getresponse.assert_called_once_with()
+        self.response_class.assert_called_once_with(self.connection.getresponse())
 
 
