@@ -39,7 +39,7 @@ Creating a transaction needs 4 arguments, ``[trx_id, medio_pago, monto, detalle]
     >>> request = PuntopagosRequest(key='API=KEY', secret='API-SECRET')
     >>> response = request.create(trx_id='123', medio_pago='3', monto=Decimal('2000'), detalle='Foo bar product')
 
-Note the `monto` is a Decimal from built-in module decimal.
+Note the ``monto`` is a Decimal from built-in module decimal.
 
 
 Retrieving the status of a transaction
@@ -55,7 +55,7 @@ PuntopagosResponse class
 
 The create and status method both returns a PuntopagosResponse instance. This class provide several attributes for understanding the response of puntopagos.
 
-For instance, if you don't provide a correct combination between trx_id, monto and token for a status request, puntopagos will return a 400 BadRequest response. You can check the http_error if exists.
+For instance, if you don't provide a correct combination between ``trx_id``, ``monto`` and ``token`` for a status request, puntopagos will return a `400 Bad Request` response. You can check the ``complete``, if ``False`` then ``http_error`` exists and contains the http error code.
 
     >>> response = request.status(trx_id='123', monto=Decimal('2000'), token='ABF56SDCL2345')
     >>> response.complete
