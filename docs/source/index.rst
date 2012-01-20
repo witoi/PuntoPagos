@@ -5,7 +5,7 @@ PuntoPagos Python API Documentation
 PuntopagosRequest class
 =======================
 
-For any operation with puntopagos you need a request object, this object provide 2 methods for create a transaction and retrieve the status. Creating a PuntopagosRequest object is as simple as next example.
+For any operation with puntopagos you need a request object, this object provide 2 methods to create a transaction and retrieve the status. Creating a PuntopagosRequest object is as simple as next example.
 
     >>> from puntopagos.request import PuntopagosRequest
     >>> request = PuntopagosRequest(key='API-KEY', secret='API-SECRET')
@@ -18,7 +18,7 @@ An useful implementation of this API is HTTPConnection (without the S), if you d
 
     >>> request = PuntopagosRequest(key='API-KEY', secret='API-SECRET', connection=HTTPConnection('www.puntopagos.com'))
 
-We provide an useful function for create connections for puntopagos.
+We provide an useful function to create connections for puntopagos.
     
     >>> from puntopagos.util import get_connection
     >>> connection = get_connection(ssl=True, sandbox=True, debug=3)
@@ -32,7 +32,7 @@ We provide an useful function for create connections for puntopagos.
 Create a transaction
 ====================
 
-Creating a transaction need 4 arguments, ``[trx_id, medio_pago, monto, detalle]`` as detailed in `PuntoPagos - Manual Técnico (REST API) v0.99, p. 3`.
+Creating a transaction needs 4 arguments, ``[trx_id, medio_pago, monto, detalle]`` as detailed in `PuntoPagos - Manual Técnico (REST API) v0.99, p. 3`.
     
     >>> from decimal import Decimal
     >>> from puntopagos.request import PuntopagosRequest
@@ -45,7 +45,7 @@ Note the `monto` is a Decimal from built-in module decimal.
 Retrieving the status of a transaction
 ======================================
 
-For retrieve a transaction's status, you need 3 parameters ``[trx_id, monto, token]`` as detailed in `PuntoPagos - Manual Técnico (REST API) v0.99, p. 7`.
+To retrieve a transaction's status, you need 3 arguments ``[trx_id, monto, token]`` as detailed in `PuntoPagos - Manual Técnico (REST API) v0.99, p. 7`.
 
     >>> response = request.status(trx_id='123', monto=Decimal('2000'), token='ABF56SDCL2345')
 
@@ -55,7 +55,7 @@ PuntopagosResponse class
 
 The create and status method both returns a PuntopagosResponse instance. This class provide several attributes for understanding the response of puntopagos.
 
-For instance, f you don't provide a correct combination between trx_id, monto and token for a status request, puntopagos will return a 400 BadRequest response. You can check the http_error if exists.
+For instance, if you don't provide a correct combination between trx_id, monto and token for a status request, puntopagos will return a 400 BadRequest response. You can check the http_error if exists.
 
     >>> response = request.status(trx_id='123', monto=Decimal('2000'), token='ABF56SDCL2345')
     >>> response.complete
@@ -63,7 +63,7 @@ For instance, f you don't provide a correct combination between trx_id, monto an
     >>> response.http_error
     400
 
-In case the response is success you will have an inmutable attribute _data for the info retrieved by puntopagos, and a get_data() method for a ``dict`` with the same information.
+In case the response is success you will have an immutable attribute ``_data`` for the info retrieved by puntopagos, and a get_data() method for a ``dict`` with the same information.
 
     >>> response = request.status(trx_id='79', monto=Decimal('15000'), token='LY26HNR6XNG8KN9W')
     >>> response.complete
