@@ -6,3 +6,5 @@ config.ini
 build/
 dist/
 doc/build/
+.coverage
+coverage_html
