@@ -5,7 +5,7 @@ from unittest import TestCase
 from mock import Mock
 import decimal
 
-from puntopagos.response import PuntopagosCreateResponse, PuntopagosResponse, PuntopagosBadResponseError
+from puntopagos.response import PuntopagosResponse, PuntopagosBadResponseError
 
 
 class PuntopagosResponseTest(TestCase):

@@ -6,7 +6,7 @@ from decimal import Decimal, ROUND_UP
 import json
 
 from puntopagos.request import PuntopagoRequest
-from puntopagos.response import PuntopagosCreateResponse, PuntopagosStatusResponse
+from puntopagos.response import PuntopagosResponse
 from puntopagos import util
 
 
@@ -34,16 +34,11 @@ class RequestTest(TestCase):
 
         self.assertTrue(isinstance(request.connection, HTTPSConnection))
     
-    def test_create_request_default_create_response_class(self):
+    def test_create_request_default_response_class(self):
         request = PuntopagoRequest(key=self.key, secret=self.secret)
 
-        self.assertEqual(request.create_response_class, PuntopagosCreateResponse)
+        self.assertEqual(request.response_class, PuntopagosResponse)
     
-    def test_create_request_default_status_response_class(self):
-        request = PuntopagoRequest(key=self.key, secret=self.secret)
-
-        self.assertEqual(request.status_response_class, PuntopagosStatusResponse)
-        
     def test_create_request_custom_connection(self):
         connection = Mock()
 
@@ -59,7 +54,7 @@ class RequestCreateTest(TestCase):
         self.key = 'KEY'
         self.secret = 'SECRET'
         self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
-        self.create_response_class = Mock()
+        self.response_class = Mock()
 
     def test_call_create(self):
         trx_id = 'TRX_ID_1'
@@ -76,12 +71,12 @@ class RequestCreateTest(TestCase):
                            'monto': float(monto.quantize(Decimal('0.01'), rounding=ROUND_UP)), 
                            'detalle': detalle, 
                            'fecha': fecha})
-        self.request.create_response_class = self.create_response_class
+        self.request.response_class = self.response_class
 
         response = self.request.create(trx_id=trx_id, medio_pago=medio_pago, monto=monto, detalle=detalle)
 
         self.connection.request.assert_called_once_with(method='POST', url='/transaccion/crear', headers=headers, body=body)
-        self.create_response_class.assert_called_once_with(self.connection.request())
+        self.response_class.assert_called_once_with(self.connection.request())
         
 
 class RequestStatusTest(TestCase):
@@ -91,7 +86,7 @@ class RequestStatusTest(TestCase):
         self.key = 'KEY'
         self.secret = 'SECRET'
         self.request = PuntopagoRequest(key=self.key, secret=self.secret, connection=self.connection)
-        self.status_response_class = Mock()
+        self.response_class = Mock()
     
     def test_get_status_aprobado(self):
         token = '9XJ08401WN0071839'
@@ -105,11 +100,11 @@ class RequestStatusTest(TestCase):
         headers = util.create_headers(authorization_string=authorization_string, 
                                       time=self.request.time, 
                                       key=self.request.key, secret=self.request.secret)
-        self.request.status_response_class = self.status_response_class
+        self.request.response_class = self.response_class
 
         response = self.request.status(token=token, trx_id=trx_id, monto=monto)
         
         self.connection.request.assert_called_once_with(method='GET', url='/transaccion/traer', headers=headers)
-        self.status_response_class.assert_called_once_with(self.connection.request())
+        self.response_class.assert_called_once_with(self.connection.request())
 
 

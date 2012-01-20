@@ -1,6 +1,7 @@
 from unittest import TestCase
 from time import strptime
 from decimal import Decimal
+from httplib import HTTPConnection, HTTPSConnection
 
 from puntopagos import util
 
@@ -41,3 +42,36 @@ class CreateHeadersTest(TestCase):
         headers = util.create_headers(authorization_string=self.authorization_string, time=self.time, key=self.key, secret=self.secret)
 
         self.assertEqual(headers, expected)
+
+
+class CreatePuntopagosConnection(TestCase):
+    def test_create_puntopagos_ssl_connection(self):
+        connection = util.get_connection(ssl=True, sandbox=False)
+        
+        self.assertTrue(isinstance(connection, HTTPSConnection))
+        self.assertEqual(connection.host, 'www.puntopagos.com')
+
+    def test_create_puntopagos_nossl_connection(self):
+        connection = util.get_connection(ssl=False, sandbox=False)
+        
+        self.assertTrue(isinstance(connection, HTTPConnection))
+        self.assertEqual(connection.host, 'www.puntopagos.com')
+        
+    def test_create_puntopagos_ssl_sandbox_connection(self):
+        connection = util.get_connection(ssl=True, sandbox=True)
+        
+        self.assertTrue(isinstance(connection, HTTPSConnection))
+        self.assertEqual(connection.host, 'sandbox.puntopagos.com')
+
+    def test_create_puntopagos_nossl_sandbox_connection(self):
+        connection = util.get_connection(ssl=False, sandbox=True)
+        
+        self.assertTrue(isinstance(connection, HTTPConnection))
+        self.assertEqual(connection.host, 'sandbox.puntopagos.com')
+
+    def test_create_puntopagos_ssl_sandbox_connection_debug(self):
+        debug_level = 3
+        
+        connection = util.get_connection(ssl=False, sandbox=True, debug=debug_level)
+        
+        self.assertEqual(connection.debuglevel, debug_level)

@@ -25,11 +25,3 @@ class PuntopagosResponse:
 
     def get_data(self):
         return dict(self._data)
-
-
-class PuntopagosCreateResponse(PuntopagosResponse):
-    pass
-
-
-class PuntopagosStatusResponse(PuntopagosResponse):
-    pass   
