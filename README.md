@@ -1,5 +1,7 @@
 # Punto Pagos Python SDK
 
+If you are using this project please send an email to pedro at witoi dot com, and if you are in a good mood send a couple of beers :).
+
 ## What's Punto Pagos
 * More info at http://www.puntopagos.com/
 * This is an independent development.
