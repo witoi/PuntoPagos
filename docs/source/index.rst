@@ -70,3 +70,17 @@ In case the response is success you will have an immutable attribute ``_data`` f
     True
     >>> response.get_data()
     {u'medio_pago': u'3', u'codigo_autorizacion': u'281172', u'medio_pago_descripcion': u'WebPay Transbank', u'tipo_pago': None, u'respuesta': u'00', u'monto': Decimal('15000.00'), u'num_cuotas': 0, u'tipo_cuotas': u'Sin Cuotas', u'fecha_aprobacion': u'2012-01-19T17:07:47', u'primer_vencimiento': None, u'numero_operacion': u'6998364387', u'token': u'LY26HNR6XNG8KN9W', u'trx_id': u'79', u'error': None, u'numero_tarjeta': u'6623', u'valor_cuota': 0}
+
+
+Puntopagos known codes
+======================
+
+  ================  =================================
+  meaning           ``respuesta``
+  ================  =================================
+  created           00 (without ``codigo_autorizacion``)
+  authorized        00
+  incomplete        6
+  payment rejected  1
+  invalid           99
+  ================  =================================
