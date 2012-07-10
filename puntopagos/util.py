@@ -7,7 +7,8 @@ from time import strftime
 
 AUTHORIZATION_STRINGS = {
     'create': 'transaccion/crear\n%(trx_id)s\n%(monto)s\n%(fecha)s',
-    'status': 'transaccion/traer\n%(token)s\n%(trx_id)s\n%(monto)s\n%(fecha)s'
+    'status': 'transaccion/traer\n%(token)s\n%(trx_id)s\n%(monto)s\n%(fecha)s',
+    'notification': 'transaccion/notificacion\n%(token)s\n%(trx_id)s\n%(monto)s\n%(fecha)s'
 }
 
 RFC1123_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'

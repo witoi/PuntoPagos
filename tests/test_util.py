@@ -27,6 +27,17 @@ class AuthorizationStringTest(TestCase):
         expected = 'transaccion/traer\n9XJ08401WN0071839\n9787415132\n10.01\nMon, 15 Jun 2009 20:50:30 GMT'
         self.assertEqual(authorization_string, expected)
 
+    def test_authorization_notification(self):
+        trx_id = '9787415132'
+        token = '9XJ08401WN0071839'
+        fecha = strptime('Mon, 15 Jun 2009 20:50:30 GMT', "%a, %d %b %Y %H:%M:%S GMT")
+        monto = Decimal('10.002')
+
+        authorization_string = util.authorization_string(action='notification', trx_id=trx_id, monto=monto, fecha=fecha, token=token)
+
+        expected = 'transaccion/notificacion\n9XJ08401WN0071839\n9787415132\n10.01\nMon, 15 Jun 2009 20:50:30 GMT'
+        self.assertEqual(authorization_string, expected)
+
 
 class CreateHeadersTest(TestCase):
     def setUp(self):
