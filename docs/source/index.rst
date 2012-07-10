@@ -75,12 +75,18 @@ In case the response is success you will have an immutable attribute ``_data`` f
 Puntopagos known codes
 ======================
 
-  ================  =================================
-  meaning           ``respuesta``
-  ================  =================================
-  created           00 (without ``codigo_autorizacion``)
-  authorized        00
-  incomplete        6
-  payment rejected  1
-  invalid           99
-  ================  =================================
+  ========= =================================
+  respuesta meaning
+  ========= =================================
+  00        Transaccion completada OK
+  1         Transaccion rechazada
+  2         Transaccion anulada
+  3         Transaccion ya existe
+  4         Transaccion no existe
+  5         Transaccion ya procesada
+  6         Transaccion incompleta
+  7         Error del financiador
+  8         Error del sistema
+  9         IP no autorizada para realizar esta accion
+  11        Cargo realizado con problemas, revise su estado de cuenta
+  ========= =================================
