@@ -48,7 +48,7 @@ class CreateHeadersTest(TestCase):
 
     def test_create_headers(self):
         authorization = 'PP 0PN5J17HBGZHT7ZZ3X82:AVrD3e9idIqAxRSH+15Yqz7qQkc='
-        expected = {'Fecha': 'Mon, 15 Jun 2009 20:45:30 GMT', 'Autorizacion': authorization, 'Content-Type': 'application/json'}
+        expected = {'Fecha': 'Mon, 15 Jun 2009 20:45:30 GMT', 'Autorizacion': authorization, 'Content-Type': 'application/json; charset=utf-8'}
 
         headers = util.create_headers(authorization_string=self.authorization_string, time=self.time, key=self.key, secret=self.secret)
 

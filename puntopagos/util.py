@@ -25,7 +25,7 @@ def create_headers(authorization_string, time, key, secret):
     sign = base64.b64encode(hmac.HMAC(secret, authorization_string, hashlib.sha1).digest())
     return {'Fecha': strftime(RFC1123_FORMAT, time),
             'Autorizacion': 'PP %(key)s:%(sign)s' % {'key': key, 'sign': sign},
-            'Content-Type': 'application/json'}
+            'Content-Type': 'application/json; charset=utf-8'}
 
 
 def get_connection(ssl=True, sandbox=False, debug=0):
